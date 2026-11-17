@@ -26,6 +26,7 @@ app.get("/", (_req, res) => {
   res.json({
     name: "Colombo Café Finder API",
     base: "/api",
+    database: "SQLite",
     endpoints: [
       "GET /api/cafes",
       "GET /api/cafes/:id",
@@ -41,14 +42,12 @@ app.use((req, res) => {
   res.status(404).json({ message: `Route not found: ${req.method} ${req.path}` });
 });
 
-async function start() {
-  await connectDB();
+try {
+  connectDB();
   app.listen(PORT, () => {
     console.log(`Café Finder API running on http://localhost:${PORT}/api`);
   });
-}
-
-start().catch((err) => {
+} catch (err) {
   console.error("Failed to start server:", err.message);
   process.exit(1);
-});
+}

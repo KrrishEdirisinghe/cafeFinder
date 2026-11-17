@@ -9,7 +9,7 @@ function parseBoolean(value) {
   return undefined;
 }
 
-export async function getCafes(req, res) {
+export function getCafes(req, res) {
   try {
     const { area, wifi, powerOutlets, studyFriendly, outdoorSeating } = req.query;
     const filter = {};
@@ -24,62 +24,38 @@ export async function getCafes(req, res) {
     const outdoorVal = parseBoolean(outdoorSeating);
     if (outdoorVal !== undefined) filter.outdoorSeating = outdoorVal;
 
-    const cafes = await Cafe.find(filter).sort({ rating: -1, name: 1 });
+    const cafes = Cafe.find(filter);
     res.json(cafes);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch cafés", error: err.message });
   }
 }
 
-export async function getCafeById(req, res) {
+export function getCafeById(req, res) {
   try {
-    const cafe = await Cafe.findById(req.params.id);
+    const cafe = Cafe.findById(req.params.id);
     if (!cafe) {
       return res.status(404).json({ message: "Café not found" });
     }
     res.json(cafe);
   } catch (err) {
-    if (err.name === "CastError") {
-      return res.status(404).json({ message: "Café not found" });
-    }
     res.status(500).json({ message: "Failed to fetch café", error: err.message });
   }
 }
 
-export async function searchCafes(req, res) {
+export function searchCafes(req, res) {
   try {
     const query = String(req.query.query || req.query.q || "").trim();
-    if (!query) {
-      const cafes = await Cafe.find().sort({ rating: -1, name: 1 });
-      return res.json(cafes);
-    }
-
-    let cafes = await Cafe.find(
-      { $text: { $search: query } },
-      { score: { $meta: "textScore" } }
-    ).sort({ score: { $meta: "textScore" }, rating: -1 });
-
-    if (cafes.length === 0) {
-      const regex = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
-      cafes = await Cafe.find({
-        $or: [
-          { name: regex },
-          { description: regex },
-          { address: regex },
-          { area: regex },
-        ],
-      }).sort({ rating: -1, name: 1 });
-    }
-
+    const cafes = Cafe.search(query);
     res.json(cafes);
   } catch (err) {
     res.status(500).json({ message: "Search failed", error: err.message });
   }
 }
 
-export async function createCafe(req, res) {
+export function createCafe(req, res) {
   try {
-    const cafe = await Cafe.create(req.body);
+    const cafe = Cafe.create(req.body);
     res.status(201).json(cafe);
   } catch (err) {
     if (err.name === "ValidationError") {
