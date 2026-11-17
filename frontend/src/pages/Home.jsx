@@ -4,20 +4,30 @@ import CafeCard from "../components/CafeCard";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SearchBar from "../components/SearchBar";
 import { getCafes } from "../services/cafeService";
+import { featureBadges } from "../utils/cafeDisplay";
 
 export default function Home() {
   const navigate = useNavigate();
   const [cafes, setCafes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const data = await getCafes();
-      if (!cancelled) {
-        setCafes(data);
-        setLoading(false);
+      try {
+        const data = await getCafes();
+        if (!cancelled) {
+          setCafes(data);
+          setError("");
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || "Could not load cafés. Is the API running on port 5000?");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -26,12 +36,11 @@ export default function Home() {
   }, []);
 
   const featured = [...cafes]
-    .filter((c) => (c.badges || []).includes("Popular Choice"))
+    .filter((c) => featureBadges(c).includes("Popular Choice"))
     .slice(0, 3);
-  const trending = [...cafes]
-    .sort((a, b) => (b.popularity || 0) - (a.popularity || 0))
-    .slice(0, 4);
+  const trending = [...cafes].sort((a, b) => b.rating - a.rating).slice(0, 4);
   const topWeek = [...cafes].sort((a, b) => b.rating - a.rating).slice(0, 5);
+  const studySpots = cafes.filter((c) => c.studyFriendly).slice(0, 3);
 
   const handleSearch = (q) => {
     navigate(`/cafes?q=${encodeURIComponent(q || "")}`);
@@ -73,14 +82,17 @@ export default function Home() {
       </section>
 
       {loading && <LoadingSpinner />}
+      {error && (
+        <p className="section-shell py-10 text-center text-rose-300">{error}</p>
+      )}
 
-      {!loading && (
+      {!loading && !error && (
         <>
           <section className="section-shell py-14">
             <div className="mb-6 flex items-end justify-between gap-4">
               <div>
                 <h2 className="font-display text-3xl font-bold text-secondary">Featured</h2>
-                <p className="mt-1 text-secondary/60">Popular Choice picks around Colombo.</p>
+                <p className="mt-1 text-secondary/60">Top-rated picks around Colombo.</p>
               </div>
               <Link to="/cafes" className="text-sm font-semibold text-primary hover:underline">
                 See all
@@ -96,7 +108,7 @@ export default function Home() {
           <section className="border-y border-white/5 bg-roast/40 py-14">
             <div className="section-shell">
               <h2 className="font-display text-3xl font-bold text-secondary">Trending</h2>
-              <p className="mt-1 text-secondary/60">What Colombo is sipping this week.</p>
+              <p className="mt-1 text-secondary/60">Highest-rated spots right now.</p>
               <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {trending.map((cafe) => (
                   <CafeCard key={cafe.id} cafe={cafe} />
@@ -105,7 +117,19 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="section-shell py-14">
+          {studySpots.length > 0 && (
+            <section className="section-shell py-14">
+              <h2 className="font-display text-3xl font-bold text-secondary">Study spots</h2>
+              <p className="mt-1 text-secondary/60">Wi-Fi, outlets, and focus-friendly rooms.</p>
+              <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {studySpots.map((cafe) => (
+                  <CafeCard key={cafe.id} cafe={cafe} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="section-shell pb-14">
             <h2 className="font-display text-3xl font-bold text-secondary">
               Top Cafés This Week
             </h2>
@@ -128,19 +152,7 @@ export default function Home() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-semibold text-ink">{cafe.name}</p>
-                        <p className="truncate text-sm text-accent/65">
-                          {cafe.location} · {cafe.ambience}
-                        </p>
-                      </div>
-                      <div className="hidden items-center gap-2 sm:flex">
-                        {(cafe.badges || []).slice(0, 1).map((b) => (
-                          <span
-                            key={b}
-                            className="rounded-md bg-mist px-2 py-0.5 text-[11px] font-semibold text-accent"
-                          >
-                            {b}
-                          </span>
-                        ))}
+                        <p className="truncate text-sm text-accent/65">{cafe.area}</p>
                       </div>
                       <span className="font-semibold text-primary">
                         {Number(cafe.rating).toFixed(1)}

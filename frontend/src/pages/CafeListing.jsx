@@ -4,13 +4,14 @@ import CafeCard from "../components/CafeCard";
 import FilterPanel from "../components/FilterPanel";
 import LoadingSpinner from "../components/LoadingSpinner";
 import SearchBar from "../components/SearchBar";
-import { filterCafes, searchCafes } from "../services/cafeService";
+import { getCafes, searchCafes } from "../services/cafeService";
 
 const defaultFilters = {
-  budget: "",
-  ambience: "",
-  cuisine: "",
-  rating: "",
+  area: "",
+  wifi: "",
+  powerOutlets: "",
+  studyFriendly: "",
+  outdoorSeating: "",
   sort: "rating",
 };
 
@@ -21,32 +22,45 @@ export default function CafeListing() {
   const [filters, setFilters] = useState(defaultFilters);
   const [cafes, setCafes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const load = useCallback(async (q, f) => {
     setLoading(true);
-    const hasFilters = f.budget || f.ambience || f.cuisine || f.rating;
-    let data;
-    if (hasFilters) {
-      data = await filterCafes({
-        budget: f.budget || undefined,
-        ambience: f.ambience || undefined,
-        cuisine: f.cuisine || undefined,
-        rating: f.rating || undefined,
-      });
-      if (q.trim()) {
-        const needle = q.trim().toLowerCase();
-        data = data.filter((c) =>
-          [c.name, c.location, c.ambience, c.cuisine, ...(c.tags || [])]
-            .join(" ")
-            .toLowerCase()
-            .includes(needle)
-        );
+    setError("");
+    try {
+      const filterParams = {
+        area: f.area || undefined,
+        wifi: f.wifi || undefined,
+        powerOutlets: f.powerOutlets || undefined,
+        studyFriendly: f.studyFriendly || undefined,
+        outdoorSeating: f.outdoorSeating || undefined,
+      };
+      const hasFilters = Object.values(filterParams).some(Boolean);
+
+      let data;
+      if (q.trim() && !hasFilters) {
+        data = await searchCafes(q.trim());
+      } else if (hasFilters) {
+        data = await getCafes(filterParams);
+        if (q.trim()) {
+          const needle = q.trim().toLowerCase();
+          data = data.filter((c) =>
+            [c.name, c.area, c.address, c.description]
+              .join(" ")
+              .toLowerCase()
+              .includes(needle)
+          );
+        }
+      } else {
+        data = await getCafes();
       }
-    } else {
-      data = await searchCafes(q.trim());
+      setCafes(data);
+    } catch (err) {
+      setError(err.message || "Failed to load cafés");
+      setCafes([]);
+    } finally {
+      setLoading(false);
     }
-    setCafes(data);
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -64,9 +78,7 @@ export default function CafeListing() {
 
   const sorted = useMemo(() => {
     const list = [...cafes];
-    if (filters.sort === "popular") {
-      list.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
-    } else if (filters.sort === "name") {
+    if (filters.sort === "name") {
       list.sort((a, b) => a.name.localeCompare(b.name));
     } else {
       list.sort((a, b) => b.rating - a.rating);
@@ -79,7 +91,7 @@ export default function CafeListing() {
       <div className="mb-8 max-w-2xl">
         <h1 className="font-display text-4xl font-bold text-secondary">All Cafés</h1>
         <p className="mt-2 text-secondary/65">
-          Search, filter, and sort Colombo&apos;s best coffee spots.
+          Search and filter Colombo cafés by area and amenities.
         </p>
       </div>
 
@@ -99,12 +111,13 @@ export default function CafeListing() {
             {loading ? "Loading…" : `${sorted.length} café${sorted.length === 1 ? "" : "s"} found`}
           </p>
           {loading && <LoadingSpinner />}
-          {!loading && sorted.length === 0 && (
+          {error && <p className="mb-4 text-rose-300">{error}</p>}
+          {!loading && !error && sorted.length === 0 && (
             <p className="rounded-2xl border border-white/10 bg-white/5 px-6 py-12 text-center text-secondary/70">
               No cafés match those filters. Try resetting.
             </p>
           )}
-          {!loading && (
+          {!loading && !error && (
             <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
               {sorted.map((cafe) => (
                 <CafeCard key={cafe.id} cafe={cafe} />

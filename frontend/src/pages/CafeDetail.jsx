@@ -2,41 +2,14 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import Badge from "../components/Badge";
 import LoadingSpinner from "../components/LoadingSpinner";
-import ReviewForm from "../components/ReviewForm";
 import StarRating from "../components/StarRating";
 import { getCafeById } from "../services/cafeService";
-
-function whySuitYou(cafe) {
-  const reasons = [];
-  if ((cafe.badges || []).includes("Study Spot")) {
-    reasons.push("Marked as a Study Spot — solid for focus sessions.");
-  }
-  if ((cafe.badges || []).includes("Best Coffee")) {
-    reasons.push("Known for Best Coffee among Colombo locals.");
-  }
-  if ((cafe.badges || []).includes("Popular Choice")) {
-    reasons.push("A Popular Choice with strong community buzz.");
-  }
-  if (cafe.ambience === "Quiet") {
-    reasons.push("Quiet ambience helps you settle in without distractions.");
-  }
-  if (cafe.ambience === "Outdoor") {
-    reasons.push("Outdoor seating brings Colombo's tropical garden energy.");
-  }
-  if (cafe.ambience === "Cozy") {
-    reasons.push("Cozy interiors are ideal for long chats and soft lighting.");
-  }
-  if (cafe.ambience === "Trendy") {
-    reasons.push("Trendy vibe if you want something stylish and social.");
-  }
-  if ((cafe.tags || []).includes("wifi")) {
-    reasons.push("Wi-Fi available for remote work or studying.");
-  }
-  if ((cafe.tags || []).includes("date-night")) {
-    reasons.push("Date-night friendly atmosphere and menu.");
-  }
-  return reasons.slice(0, 4);
-}
+import {
+  featureBadges,
+  featureTags,
+  formatOpeningHours,
+  whySuitYou,
+} from "../utils/cafeDisplay";
 
 export default function CafeDetail() {
   const { id } = useParams();
@@ -54,8 +27,8 @@ export default function CafeDetail() {
           setCafe(data);
           setError("");
         }
-      } catch {
-        if (!cancelled) setError("Café not found.");
+      } catch (err) {
+        if (!cancelled) setError(err.message || "Café not found.");
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -77,6 +50,8 @@ export default function CafeDetail() {
     );
   }
 
+  const badges = featureBadges(cafe);
+  const tags = featureTags(cafe);
   const reasons = whySuitYou(cafe);
 
   return (
@@ -89,7 +64,7 @@ export default function CafeDetail() {
       <div className="section-shell relative -mt-16 pb-16">
         <div className="rounded-2xl border border-white/10 bg-secondary p-6 shadow-card sm:p-8">
           <div className="flex flex-wrap gap-2">
-            {(cafe.badges || []).map((b) => (
+            {badges.map((b) => (
               <Badge key={b} label={b} />
             ))}
           </div>
@@ -98,9 +73,7 @@ export default function CafeDetail() {
               <h1 className="font-display text-3xl font-bold text-ink sm:text-4xl">
                 {cafe.name}
               </h1>
-              <p className="mt-2 text-accent/70">
-                {cafe.location} · {cafe.cuisine} · {cafe.ambience} · {cafe.price}
-              </p>
+              <p className="mt-2 text-accent/70">{cafe.area}</p>
             </div>
             <div className="flex items-center gap-2 rounded-xl bg-mist px-4 py-2">
               <StarRating value={cafe.rating} />
@@ -115,7 +88,7 @@ export default function CafeDetail() {
           </p>
 
           <div className="mt-6 flex flex-wrap gap-2">
-            {(cafe.tags || []).map((tag) => (
+            {tags.map((tag) => (
               <span
                 key={tag}
                 className="rounded-lg bg-mist px-3 py-1 text-xs font-semibold text-accent"
@@ -131,12 +104,17 @@ export default function CafeDetail() {
                 Address
               </p>
               <p className="mt-1 font-medium text-ink">{cafe.address}</p>
+              <p className="mt-2 text-xs text-accent/55">
+                {cafe.latitude?.toFixed?.(5)}, {cafe.longitude?.toFixed?.(5)}
+              </p>
             </div>
             <div className="rounded-xl bg-mist/70 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-accent/55">
                 Opening hours
               </p>
-              <p className="mt-1 font-medium text-ink">{cafe.openingHours}</p>
+              <p className="mt-1 text-sm font-medium leading-relaxed text-ink">
+                {formatOpeningHours(cafe.openingHours)}
+              </p>
             </div>
           </div>
         </div>
@@ -155,31 +133,28 @@ export default function CafeDetail() {
           </ul>
         </section>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-2">
-          <section>
-            <h2 className="font-display text-2xl font-bold text-secondary">Reviews</h2>
-            <ul className="mt-4 space-y-3">
-              {(cafe.reviews || []).length === 0 && (
-                <li className="text-secondary/60">No reviews yet — be the first!</li>
-              )}
-              {(cafe.reviews || []).map((review) => (
-                <li
-                  key={review.id}
-                  className="rounded-xl border border-accent/10 bg-secondary p-4 shadow-soft"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-ink">{review.name}</p>
-                    <StarRating value={review.rating} size="sm" />
-                  </div>
-                  <p className="mt-2 text-sm text-accent/80">{review.comment}</p>
-                  <p className="mt-2 text-xs text-accent/45">{review.date}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <ReviewForm cafeId={cafe.id} onSuccess={setCafe} />
-        </div>
+        <section className="mt-8 rounded-2xl border border-accent/10 bg-secondary p-6 shadow-soft">
+          <h2 className="font-display text-2xl font-bold text-ink">Amenities</h2>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            {[
+              ["Wi-Fi", cafe.wifi],
+              ["Power outlets", cafe.powerOutlets],
+              ["Air conditioning", cafe.airConditioning],
+              ["Outdoor seating", cafe.outdoorSeating],
+              ["Study friendly", cafe.studyFriendly],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded-xl bg-mist/70 px-4 py-3 text-sm"
+              >
+                <dt className="font-medium text-ink">{label}</dt>
+                <dd className={value ? "font-semibold text-primary" : "text-accent/50"}>
+                  {value ? "Yes" : "No"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
 
         <Link
           to="/cafes"

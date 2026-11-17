@@ -9,7 +9,7 @@ export default function Footer() {
             Colombo <span className="text-primary">Café</span> Finder
           </p>
           <p className="mt-1 text-sm text-secondary/60">
-            Frontend MVP with mock café data — no backend required.
+            React frontend + Express / MongoDB API.
           </p>
         </div>
         <div className="flex gap-4 text-sm text-secondary/70">

@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import Badge from "./Badge";
 import StarRating from "./StarRating";
+import { featureBadges, featureTags } from "../utils/cafeDisplay";
 
 export default function CafeCard({ cafe, reason }) {
+  const badges = cafe.badges?.length ? cafe.badges : featureBadges(cafe);
+  const tags = cafe.tags?.length ? cafe.tags : featureTags(cafe);
+
   return (
     <Link
       to={`/cafes/${cafe.id}`}
@@ -17,12 +21,12 @@ export default function CafeCard({ cafe, reason }) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent opacity-80" />
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-          {(cafe.badges || []).map((b) => (
+          {badges.map((b) => (
             <Badge key={b} label={b} />
           ))}
         </div>
         <span className="absolute bottom-3 right-3 rounded-lg bg-ink/80 px-2.5 py-1 text-sm font-semibold text-secondary backdrop-blur">
-          {cafe.price}
+          {cafe.area}
         </span>
       </div>
 
@@ -36,11 +40,9 @@ export default function CafeCard({ cafe, reason }) {
             <span>{Number(cafe.rating).toFixed(1)}</span>
           </div>
         </div>
-        <p className="text-sm text-accent/70">
-          {cafe.location} · {cafe.ambience}
-        </p>
+        <p className="text-sm text-accent/70 line-clamp-2">{cafe.address}</p>
         <div className="mt-auto flex flex-wrap gap-1.5 pt-1">
-          {(cafe.tags || []).slice(0, 3).map((tag) => (
+          {tags.slice(0, 3).map((tag) => (
             <span
               key={tag}
               className="rounded-md bg-mist px-2 py-0.5 text-[11px] font-medium text-accent"
@@ -50,14 +52,7 @@ export default function CafeCard({ cafe, reason }) {
           ))}
         </div>
         {reason && (
-          <p className="mt-1 border-t border-accent/10 pt-2 text-xs text-primary">
-            {reason}
-          </p>
-        )}
-        {cafe.matchScore !== undefined && (
-          <p className="text-xs font-semibold text-accent">
-            Match score: {cafe.matchScore}
-          </p>
+          <p className="mt-1 border-t border-accent/10 pt-2 text-xs text-primary">{reason}</p>
         )}
       </div>
     </Link>

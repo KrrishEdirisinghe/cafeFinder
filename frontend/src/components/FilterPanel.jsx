@@ -1,9 +1,4 @@
-import {
-  ambienceOptions,
-  cuisineOptions,
-  ratingOptions,
-  sortOptions,
-} from "../data/preferences";
+import { areaOptions, booleanFilters, sortOptions } from "../data/preferences";
 
 export default function FilterPanel({ filters, onChange, onReset }) {
   const update = (key, value) => onChange({ ...filters, [key]: value });
@@ -24,31 +19,15 @@ export default function FilterPanel({ filters, onChange, onReset }) {
       <div className="space-y-5">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-accent/70">
-            Budget
+            Area
           </span>
           <select
             className="input-field !py-2.5"
-            value={filters.budget}
-            onChange={(e) => update("budget", e.target.value)}
+            value={filters.area}
+            onChange={(e) => update("area", e.target.value)}
           >
             <option value="">Any</option>
-            <option value="$">$</option>
-            <option value="$$">$$</option>
-            <option value="$$$">$$$</option>
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-accent/70">
-            Ambience
-          </span>
-          <select
-            className="input-field !py-2.5"
-            value={filters.ambience}
-            onChange={(e) => update("ambience", e.target.value)}
-          >
-            <option value="">Any</option>
-            {ambienceOptions.map((a) => (
+            {areaOptions.map((a) => (
               <option key={a} value={a}>
                 {a}
               </option>
@@ -56,41 +35,26 @@ export default function FilterPanel({ filters, onChange, onReset }) {
           </select>
         </label>
 
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-accent/70">
-            Cuisine
+        <div>
+          <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-accent/70">
+            Features
           </span>
-          <select
-            className="input-field !py-2.5"
-            value={filters.cuisine}
-            onChange={(e) => update("cuisine", e.target.value)}
-          >
-            <option value="">Any</option>
-            {cuisineOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
+          <div className="space-y-2">
+            {booleanFilters.map((f) => (
+              <label key={f.key} className="flex items-center gap-2 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-accent/30 text-primary focus:ring-primary"
+                  checked={filters[f.key] === "true"}
+                  onChange={(e) =>
+                    update(f.key, e.target.checked ? "true" : "")
+                  }
+                />
+                {f.label}
+              </label>
             ))}
-          </select>
-        </label>
-
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-accent/70">
-            Min Rating
-          </span>
-          <select
-            className="input-field !py-2.5"
-            value={filters.rating}
-            onChange={(e) => update("rating", e.target.value)}
-          >
-            <option value="">Any</option>
-            {ratingOptions.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          </div>
+        </div>
 
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-accent/70">
